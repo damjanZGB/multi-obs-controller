@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "..",
     "outDir": "dist",
     "module": "ESNext",
     "moduleResolution": "Node",
@@ -14,9 +14,7 @@
     "resolveJsonModule": true,
     "types": ["node"],
     "baseUrl": ".",
-    "paths": {
-      "@control-center/shared/*": ["../shared/*"]
-    }
+    "paths": {}
   },
-  "include": ["src"]
+  "include": ["src", "../shared"]
 }
