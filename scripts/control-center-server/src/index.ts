@@ -6,9 +6,10 @@ import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import pino from 'pino';
 import { ObsManager } from './core/obs-manager';
-import { getConnections } from './config/store';
+import { getConnections, getGlobalSettings } from './config/store';
 import { registerSettingsRoutes } from './routes/settings';
 import { registerActionsRoutes } from './routes/actions';
+import { LogBuffer } from './logging/log-buffer';
 
 const PORT = Number(process.env.PORT ?? 4000);
 const __filename = fileURLToPath(import.meta.url);
@@ -38,6 +39,7 @@ const logger = pino({
 
 const obsManager = new ObsManager(logger);
 obsManager.initialize(getConnections());
+const logBuffer = new LogBuffer(200);
 
 app.use(cors());
 app.use(express.json());
@@ -49,8 +51,13 @@ registerActionsRoutes(apiRouter, obsManager);
 apiRouter.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
-    telemetry: obsManager.getTelemetry()
+    telemetry: obsManager.getTelemetry(),
+    global: getGlobalSettings()
   });
+});
+
+apiRouter.get('/logs', (_req, res) => {
+  res.json({ logs: logBuffer.list() });
 });
 
 app.use('/api', apiRouter);
@@ -65,6 +72,7 @@ if (process.env.NODE_ENV === 'production') {
 io.on('connection', (socket) => {
   logger.info({ socketId: socket.id }, 'Client connected');
   socket.emit('telemetry:update', obsManager.getTelemetry());
+  socket.emit('log:init', logBuffer.list());
 
   socket.on('disconnect', () => {
     logger.info({ socketId: socket.id }, 'Client disconnected');
@@ -76,6 +84,13 @@ obsManager.on('telemetry', (payload) => {
 });
 
 obsManager.on('log', ({ level, message }) => {
+  const entry = {
+    timestamp: Date.now(),
+    level,
+    message
+  } as const;
+  logBuffer.push(entry);
+  io.emit('log:append', entry);
   if (level === 'error') {
     logger.error({ module: 'obs-manager' }, message);
   }

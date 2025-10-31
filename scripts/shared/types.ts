@@ -7,6 +7,10 @@ export type ObsConnectionSettings = {
   alias?: string;
 };
 
+export type GlobalSettings = {
+  scenePresets: string[];
+};
+
 export type StreamState = 'live' | 'offline' | 'error';
 export type RecordState = 'recording' | 'paused' | 'stopped' | 'error';
 
@@ -40,4 +44,11 @@ export type SceneRequestPayload = {
 
 export type SettingsPayload = {
   connections: ObsConnectionSettings[];
+  global: GlobalSettings;
+};
+
+export type LogEntry = {
+  timestamp: number;
+  level: 'info' | 'warn' | 'error';
+  message: string;
 };

@@ -7,11 +7,6 @@ import type {
 } from '../../../shared/types';
 import { ObsController } from './obs-controller';
 
-type ManagerEvents = {
-  telemetry: (payload: ObsTelemetry[]) => void;
-  log: (payload: { level: 'info' | 'warn' | 'error'; message: string }) => void;
-};
-
 const MAX_CONNECTIONS = 20;
 
 export class ObsManager extends EventEmitter {

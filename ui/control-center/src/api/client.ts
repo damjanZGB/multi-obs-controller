@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   ActionResult,
+  LogEntry,
   ObsTelemetry,
   SceneRequestPayload,
   SettingsPayload
@@ -12,7 +13,11 @@ const api = axios.create({
 });
 
 export const fetchHealth = async () => {
-  const response = await api.get<{ status: string; telemetry: ObsTelemetry[] }>('/health');
+  const response = await api.get<{
+    status: string;
+    telemetry: ObsTelemetry[];
+    global: SettingsPayload['global'];
+  }>('/health');
   return response.data;
 };
 
@@ -32,5 +37,10 @@ export const muteAll = async (muted: boolean) => {
 
 export const setSceneAll = async (payload: SceneRequestPayload) => {
   const response = await api.post<ActionResult>('/actions/set-scene', payload);
+  return response.data;
+};
+
+export const fetchLogs = async () => {
+  const response = await api.get<{ logs: LogEntry[] }>('/logs');
   return response.data;
 };

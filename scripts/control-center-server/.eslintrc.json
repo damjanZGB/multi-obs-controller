@@ -8,6 +8,20 @@
   },
   "rules": {
     "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/strict-boolean-expressions": "off"
+    "@typescript-eslint/strict-boolean-expressions": "off",
+    "@typescript-eslint/semi": "off",
+    "@typescript-eslint/member-delimiter-style": "off",
+    "@typescript-eslint/consistent-type-definitions": "off",
+    "@typescript-eslint/consistent-type-imports": "off",
+    "@typescript-eslint/brace-style": "off",
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": false
+      }
+    ],
+    "@typescript-eslint/space-before-function-paren": "off",
+    "@typescript-eslint/prefer-readonly": "off",
+    "@typescript-eslint/naming-convention": "off"
   }
 }

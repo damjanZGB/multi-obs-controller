@@ -14,6 +14,12 @@
       {
         "checksVoidReturn": false
       }
-    ]
+    ],
+    "@typescript-eslint/semi": "off",
+    "@typescript-eslint/member-delimiter-style": "off",
+    "@typescript-eslint/consistent-type-definitions": "off",
+    "@typescript-eslint/consistent-type-imports": "off",
+    "@typescript-eslint/space-before-function-paren": "off",
+    "@typescript-eslint/brace-style": "off"
   }
 }

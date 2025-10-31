@@ -25,36 +25,52 @@ import {
   Tr,
   VStack
 } from '@chakra-ui/react';
-import type { ObsConnectionSettings } from '@control-center/shared';
+import type { GlobalSettings, ObsConnectionSettings, SettingsPayload } from '@control-center/shared';
 import { useEffect, useState } from 'react';
 
 type SettingsDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
-  settings: ObsConnectionSettings[];
-  onSubmit: (settings: ObsConnectionSettings[]) => Promise<void>;
+  connections: ObsConnectionSettings[];
+  global: GlobalSettings;
+  onSubmit: (payload: SettingsPayload) => Promise<void>;
   submitting: boolean;
 };
 
-const SettingsDrawer = ({ isOpen, onClose, settings, onSubmit, submitting }: SettingsDrawerProps) => {
-  const [formState, setFormState] = useState<ObsConnectionSettings[]>(settings);
+const SettingsDrawer = ({
+  isOpen,
+  onClose,
+  connections,
+  global,
+  onSubmit,
+  submitting
+}: SettingsDrawerProps) => {
+  const [connectionState, setConnectionState] = useState<ObsConnectionSettings[]>(connections);
+  const [scenePresets, setScenePresets] = useState<string[]>(global.scenePresets);
 
   useEffect(() => {
-    setFormState(settings);
-  }, [settings]);
+    setConnectionState(connections);
+  }, [connections]);
+
+  useEffect(() => {
+    setScenePresets(global.scenePresets);
+  }, [global.scenePresets]);
 
   const updateField = <T extends keyof ObsConnectionSettings>(
     index: number,
     field: T,
     value: ObsConnectionSettings[T]
   ) => {
-    setFormState((prev) =>
-      prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
-    );
+    setConnectionState((prev) => {
+      return prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item));
+    });
   };
 
   const handleSubmit = async () => {
-    await onSubmit(formState);
+    await onSubmit({
+      connections: connectionState,
+      global: { scenePresets }
+    });
     onClose();
   };
 
@@ -86,7 +102,7 @@ const SettingsDrawer = ({ isOpen, onClose, settings, onSubmit, submitting }: Set
                 </Tr>
               </Thead>
               <Tbody>
-                {formState.map((connection, index) => (
+                {connectionState.map((connection, index) => (
                   <Tr key={connection.id}>
                     <Td>
                       <HStack spacing={2}>
@@ -98,14 +114,18 @@ const SettingsDrawer = ({ isOpen, onClose, settings, onSubmit, submitting }: Set
                         size="sm"
                         value={connection.alias ?? ''}
                         placeholder={`OBS ${connection.id}`}
-                        onChange={(event) => updateField(index, 'alias', event.target.value)}
+                        onChange={(event) => {
+                          updateField(index, 'alias', event.target.value);
+                        }}
                       />
                     </Td>
                     <Td>
                       <Input
                         size="sm"
                         value={connection.host}
-                        onChange={(event) => updateField(index, 'host', event.target.value)}
+                        onChange={(event) => {
+                          updateField(index, 'host', event.target.value);
+                        }}
                       />
                     </Td>
                     <Td>
@@ -114,9 +134,9 @@ const SettingsDrawer = ({ isOpen, onClose, settings, onSubmit, submitting }: Set
                         min={1}
                         max={65535}
                         value={connection.port}
-                        onChange={(_valueString, valueNumber) =>
-                          updateField(index, 'port', Number.isNaN(valueNumber) ? 4455 : valueNumber)
-                        }
+                        onChange={(_valueString, valueNumber) => {
+                          updateField(index, 'port', Number.isNaN(valueNumber) ? 4455 : valueNumber);
+                        }}
                       >
                         <NumberInputField />
                       </NumberInput>
@@ -126,14 +146,18 @@ const SettingsDrawer = ({ isOpen, onClose, settings, onSubmit, submitting }: Set
                         size="sm"
                         type="password"
                         value={connection.password ?? ''}
-                        onChange={(event) => updateField(index, 'password', event.target.value)}
+                        onChange={(event) => {
+                          updateField(index, 'password', event.target.value);
+                        }}
                         placeholder="Optional"
                       />
                     </Td>
                     <Td textAlign="center">
                       <Switch
                         isChecked={connection.enabled}
-                        onChange={(event) => updateField(index, 'enabled', event.target.checked)}
+                        onChange={(event) => {
+                          updateField(index, 'enabled', event.target.checked);
+                        }}
                       />
                     </Td>
                   </Tr>
@@ -148,15 +172,44 @@ const SettingsDrawer = ({ isOpen, onClose, settings, onSubmit, submitting }: Set
                 </FormLabel>
                 <Switch
                   id="enable-all"
-                  onChange={(event) =>
-                    setFormState((prev) =>
-                      prev.map((item) => ({
+                  onChange={(event) => {
+                    setConnectionState((prev) => {
+                      return prev.map((item) => ({
                         ...item,
                         enabled: event.target.checked ? item.host.length > 0 : false
-                      }))
-                    )
-                  }
+                      }));
+                    });
+                  }}
                 />
+              </FormControl>
+            </Box>
+
+            <Box>
+              <FormControl>
+                <FormLabel>Scene Presets</FormLabel>
+                <Text color="gray.500" fontSize="sm" mb={2}>
+                  Update the labels used for the scene buttons. Provide the exact scene names configured in OBS. Leave empty to disable a button.
+                </Text>
+                <VStack align="stretch" spacing={2}>
+                  {scenePresets.map((scene, index) => (
+                    <HStack key={`scene-${index}`} spacing={3} align="center">
+                      <Badge minW="45px" textAlign="center">
+                        {index + 1}
+                      </Badge>
+                      <Input
+                        value={scene}
+                        placeholder={`Scene ${index + 1}`}
+                        onChange={(event) => {
+                          setScenePresets((prev) => {
+                            const next = [...prev];
+                            next[index] = event.target.value;
+                            return next;
+                          });
+                        }}
+                      />
+                    </HStack>
+                  ))}
+                </VStack>
               </FormControl>
             </Box>
           </VStack>

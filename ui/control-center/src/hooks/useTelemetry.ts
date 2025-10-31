@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { io, type Socket } from 'socket.io-client';
+import { useEffect, useState } from 'react';
 import type { ObsTelemetry } from '@control-center/shared';
 import { fetchHealth } from '../api/client';
+import { getSocket } from '../lib/socket';
 
 type UseTelemetryState = {
   telemetry: ObsTelemetry[];
@@ -15,17 +15,8 @@ export const useTelemetry = () => {
     connected: false
   });
 
-  const socket: Socket = useMemo(
-    () =>
-      io('/', {
-        transports: ['websocket'],
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
-      }),
-    []
-  );
-
   useEffect(() => {
+    const socket = getSocket();
     let mounted = true;
 
     fetchHealth()
@@ -59,9 +50,11 @@ export const useTelemetry = () => {
 
     return () => {
       mounted = false;
-      socket.disconnect();
+      socket.off('telemetry:update');
+      socket.off('connect');
+      socket.off('disconnect');
     };
-  }, [socket]);
+  }, []);
 
   return state;
 };

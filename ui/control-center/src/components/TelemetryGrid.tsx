@@ -4,9 +4,10 @@ import TelemetryCard from './TelemetryCard';
 
 type TelemetryGridProps = {
   telemetry: ObsTelemetry[];
+  issues?: Map<number, { reason: string; timestamp: number }>;
 };
 
-const TelemetryGrid = ({ telemetry }: TelemetryGridProps) => {
+const TelemetryGrid = ({ telemetry, issues = new Map() }: TelemetryGridProps) => {
   if (!telemetry.length) {
     return (
       <Box
@@ -26,7 +27,11 @@ const TelemetryGrid = ({ telemetry }: TelemetryGridProps) => {
   return (
     <SimpleGrid spacing={4} columns={{ base: 1, md: 2, lg: 3, xl: 4 }}>
       {telemetry.map((item) => (
-        <TelemetryCard key={item.id} telemetry={item} />
+        <TelemetryCard
+          key={item.id}
+          telemetry={item}
+          commandIssue={issues.get(item.id) ?? undefined}
+        />
       ))}
     </SimpleGrid>
   );

@@ -16,17 +16,17 @@ type ControlBarProps = {
   onMute: () => Promise<void>;
   onUnmute: () => Promise<void>;
   onSetScene: (sceneName: string) => Promise<void>;
+  scenePresets: string[];
   loadingCommand?: string;
   telemetryConnected: boolean;
   onOpenSettings: () => void;
 };
 
-const scenes = ['Scene 1', 'Scene 2', 'Scene 3', 'Scene 4', 'Scene 5'];
-
 const ControlBar = ({
   onMute,
   onUnmute,
   onSetScene,
+  scenePresets,
   loadingCommand,
   telemetryConnected,
   onOpenSettings
@@ -59,7 +59,7 @@ const ControlBar = ({
 
       <ButtonGroup size="sm" isAttached variant="outline">
         <Button
-          onClick={onMute}
+          onClick={async () => { await onMute(); }}
           isLoading={loadingCommand === 'mute'}
           loadingText="Muting"
           colorScheme="red"
@@ -67,7 +67,7 @@ const ControlBar = ({
           Mute All
         </Button>
         <Button
-          onClick={onUnmute}
+          onClick={async () => { await onUnmute(); }}
           isLoading={loadingCommand === 'unmute'}
           loadingText="Unmuting"
           colorScheme="green"
@@ -77,13 +77,14 @@ const ControlBar = ({
       </ButtonGroup>
 
       <ButtonGroup size="sm" variant="solid">
-        {scenes.map((scene) => (
+        {scenePresets.map((scene, index) => (
           <Button
-            key={scene}
-            onClick={() => onSetScene(scene)}
+            key={`${scene}-${index}`}
+            onClick={async () => { await onSetScene(scene); }}
             isLoading={loadingCommand === scene}
             loadingText="Applying"
             colorScheme="blue"
+            isDisabled={!scene.length}
           >
             {scene}
           </Button>

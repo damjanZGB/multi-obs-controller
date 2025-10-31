@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ObsConnectionSettings, SettingsPayload } from '@control-center/shared';
+import type { GlobalSettings, ObsConnectionSettings, SettingsPayload } from '@control-center/shared';
 import { fetchSettings, updateSettings } from '../api/client';
 
 type SettingsState = {
-  settings: ObsConnectionSettings[];
+  connections: ObsConnectionSettings[];
+  global: GlobalSettings;
   loading: boolean;
   error?: string;
 };
@@ -13,7 +14,8 @@ const sortConnections = (connections: ObsConnectionSettings[]) =>
 
 export const useSettings = () => {
   const [state, setState] = useState<SettingsState>({
-    settings: [],
+    connections: [],
+    global: { scenePresets: ['Scene 1', 'Scene 2', 'Scene 3', 'Scene 4', 'Scene 5'] },
     loading: true
   });
 
@@ -21,11 +23,16 @@ export const useSettings = () => {
     setState((prev) => ({ ...prev, loading: true, error: undefined }));
     try {
       const response = await fetchSettings();
-      setState({ settings: sortConnections(response.connections), loading: false });
+      setState({
+        connections: sortConnections(response.connections),
+        global: response.global,
+        loading: false
+      });
     }
     catch (error) {
       setState({
-        settings: [],
+        connections: [],
+        global: { scenePresets: ['Scene 1', 'Scene 2', 'Scene 3', 'Scene 4', 'Scene 5'] },
         loading: false,
         error: error instanceof Error ? error.message : String(error)
       });
@@ -38,11 +45,16 @@ export const useSettings = () => {
 
   const save = useCallback(async (payload: SettingsPayload) => {
     await updateSettings(payload);
-    setState({ settings: sortConnections(payload.connections), loading: false });
+    setState({
+      connections: sortConnections(payload.connections),
+      global: payload.global,
+      loading: false
+    });
   }, []);
 
   return {
-    settings: state.settings,
+    connections: state.connections,
+    global: state.global,
     loading: state.loading,
     error: state.error,
     reload: load,

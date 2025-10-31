@@ -5,7 +5,7 @@ This repository now hosts a browser-based control center that can manage up to t
 
 Key capabilities:
 - Configure and persist up to 20 OBS WebSocket endpoints (IP, port, password, alias, enabled flag).
-- One-click global actions for mute/unmute and scene recall (scenes 1–5 by default).
+- One-click global actions for mute/unmute and scene recall (scenes 1–5, configurable via settings).
 - Live telemetry for CPU usage, stream/record states, dropped frames, and audio level meters per OBS instance.
 - Socket-powered updates with reconnect logic and persistent storage (`configstore` in the user profile).
 
@@ -86,8 +86,9 @@ ui/control-center            ← React dashboard (Vite + Chakra UI)
 
 ## Frontend Notes
 - UI stack: Vite, React, Chakra UI.
-- `ControlBar` exposes global buttons; telemetry grid auto-refreshes on socket events.
-- Settings drawer edits all OBS endpoints in a single table; aliases appear on telemetry cards.
+- `ControlBar` exposes global buttons and reflects scene presets defined in settings; telemetry grid auto-refreshes on socket events.
+- Settings drawer edits all OBS endpoints in a single table, manages scene presets, and aliases appear on telemetry cards.
+- A log panel displays recent OBS/socket events streamed from the backend for quick troubleshooting.
 - Color mode toggle (light/dark) is available in the control bar.
 
 ## Testing & Validation
@@ -101,7 +102,7 @@ ui/control-center            ← React dashboard (Vite + Chakra UI)
   5. Disconnect an OBS instance to confirm reconnect logic and offline state.
 
 ## Roadmap / TODO
-- Allow custom scene presets (user-defined names instead of fixed 1–5).
+- Per-instance command controls (scene, mute) alongside global actions.
 - Surface per-instance command controls (scene, mute) alongside global actions.
 - Encrypt stored passwords (e.g., Windows DPAPI integration).
 - Add integration tests with mocked OBS servers.

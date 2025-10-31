@@ -9,8 +9,15 @@ export const connectionSchema = z.object({
   alias: z.string().optional()
 });
 
+export const globalSettingsSchema = z.object({
+  scenePresets: z
+    .array(z.string().min(1))
+    .length(5)
+});
+
 export const settingsSchema = z.object({
-  connections: z.array(connectionSchema).max(20)
+  connections: z.array(connectionSchema).max(20),
+  global: globalSettingsSchema
 });
 
 export const sceneSchema = z.object({
