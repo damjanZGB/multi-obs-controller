@@ -2,6 +2,7 @@ import OBSWebSocket, { EventSubscription } from 'obs-websocket-js';
 import { EventEmitter } from 'node:events';
 const DEFAULT_RECONNECT_INTERVAL_MS = 5000;
 const STATS_INTERVAL_MS = 2000;
+const VOLUME_EMIT_INTERVAL_MS = 120;
 const AUDIO_INPUT_KINDS = [
     'wasapi_input_capture',
     'wasapi_output_capture',
@@ -24,6 +25,9 @@ export class ObsController extends EventEmitter {
     statsTimer;
     audioInputs = [];
     isConnecting = false;
+    volumeDebugLogged = false;
+    volumeEmitTimer;
+    lastVolumeEmit = 0;
     constructor(settings, logger) {
         super();
         this.logger = logger;
@@ -47,6 +51,7 @@ export class ObsController extends EventEmitter {
         });
         this.obs.on('Identified', () => {
             this.logger.info({ id: this.settings.id }, 'OBS identified');
+            this.volumeDebugLogged = false;
             this.updateTelemetry({
                 connected: true,
                 lastError: undefined
@@ -94,13 +99,52 @@ export class ObsController extends EventEmitter {
         });
         this.obs.on('InputVolumeMeters', (raw) => {
             const data = raw;
-            const levelsDb = data.inputs
-                .flatMap((input) => input.inputLevelsDb)
-                .filter((value) => typeof value === 'number');
-            const maxLevel = levelsDb.length > 0 ? Math.max(...levelsDb) : undefined;
-            this.updateTelemetry({
-                audioLevelDb: maxLevel
+            let relevantInputs = data.inputs.filter((input) => {
+                if (!this.audioInputs.length)
+                    return true;
+                if (!input.inputName)
+                    return false;
+                return this.audioInputs.includes(input.inputName);
             });
+            if (!relevantInputs.length) {
+                relevantInputs = data.inputs;
+            }
+            const channelPeaks = relevantInputs
+                .flatMap((input) => input.inputLevelsMul ?? [])
+                .map((channelLevels) => {
+                if (!Array.isArray(channelLevels))
+                    return null;
+                // channelLevels format: [magnitude, peakWithVolume, peakRaw]
+                const peakWithVolume = channelLevels[1];
+                const fallback = channelLevels[0] ?? channelLevels[2];
+                const value = typeof peakWithVolume === 'number' ? peakWithVolume : fallback;
+                return typeof value === 'number' ? value : null;
+            })
+                .filter((value) => typeof value === 'number' && value >= 0);
+            const toDb = (value) => {
+                if (value <= 0)
+                    return -96;
+                return 20 * Math.log10(value);
+            };
+            if (!this.volumeDebugLogged) {
+                this.volumeDebugLogged = true;
+                const firstInput = relevantInputs[0];
+                this.logger.info({
+                    id: this.settings.id,
+                    inputsTotal: data.inputs.length,
+                    relevantInputs: relevantInputs.length,
+                    sampleMul: firstInput?.inputLevelsMul
+                }, 'InputVolumeMeters sample');
+            }
+            const maxPeakMul = channelPeaks.length > 0 ? Math.max(...channelPeaks) : undefined;
+            const nextLevelDb = typeof maxPeakMul === 'number' ? Math.max(-96, Math.min(0, toDb(maxPeakMul))) : -96;
+            const previousLevelDb = typeof this.telemetry.audioLevelDb === 'number' ? this.telemetry.audioLevelDb : -96;
+            if (Math.abs(nextLevelDb - previousLevelDb) < 0.4) {
+                return;
+            }
+            this.updateTelemetry({
+                audioLevelDb: nextLevelDb
+            }, { throttle: true });
         });
         this.obs.on('error', (error) => {
             this.logger.error({ id: this.settings.id, error }, 'OBS error');
@@ -108,17 +152,8 @@ export class ObsController extends EventEmitter {
         });
     }
     async postIdentifySetup() {
-        try {
-            await this.obs.call('Subscribe', {
-                eventSubscriptions: EventSubscription.All | EventSubscription.InputVolumeMeters | EventSubscription.SceneItems
-            });
-            await this.refreshAudioInputs();
-            this.startStatsPolling();
-        }
-        catch (error) {
-            this.logger.error({ id: this.settings.id, error }, 'Failed post-identify setup');
-            this.emit('error', error);
-        }
+        await this.refreshAudioInputs();
+        this.startStatsPolling();
     }
     async refreshAudioInputs() {
         try {
@@ -212,7 +247,9 @@ export class ObsController extends EventEmitter {
         this.isConnecting = true;
         const url = `ws://${this.settings.host}:${this.settings.port}`;
         try {
-            await this.obs.connect(url, this.settings.password);
+            await this.obs.connect(url, this.settings.password, {
+                eventSubscriptions: EventSubscription.All | EventSubscription.InputVolumeMeters | EventSubscription.SceneItems
+            });
         }
         catch (error) {
             this.logger.error({ id: this.settings.id, error }, 'Failed to connect OBS');
@@ -232,6 +269,10 @@ export class ObsController extends EventEmitter {
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = undefined;
         }
+        if (this.volumeEmitTimer) {
+            clearTimeout(this.volumeEmitTimer);
+            this.volumeEmitTimer = undefined;
+        }
         await this.obs.disconnect();
         this.updateTelemetry({
             connected: false
@@ -245,7 +286,7 @@ export class ObsController extends EventEmitter {
             void this.connect();
         }, DEFAULT_RECONNECT_INTERVAL_MS);
     }
-    updateTelemetry(partial) {
+    updateTelemetry(partial, options) {
         this.telemetry = {
             ...this.telemetry,
             ...partial,
@@ -253,11 +294,33 @@ export class ObsController extends EventEmitter {
             alias: this.settings.alias,
             lastHeartbeat: Date.now()
         };
-        this.emitTelemetry();
+        if (options?.throttle) {
+            this.scheduleTelemetryEmit();
+        }
+        else {
+            this.emitTelemetry();
+        }
     }
     emitTelemetry() {
         const telemetry = { ...this.telemetry };
         this.emit('telemetry', telemetry);
+    }
+    scheduleTelemetryEmit() {
+        const now = Date.now();
+        const elapsed = now - this.lastVolumeEmit;
+        if (elapsed >= VOLUME_EMIT_INTERVAL_MS) {
+            this.lastVolumeEmit = now;
+            this.emitTelemetry();
+            return;
+        }
+        if (this.volumeEmitTimer)
+            return;
+        const delay = Math.max(10, VOLUME_EMIT_INTERVAL_MS - elapsed);
+        this.volumeEmitTimer = setTimeout(() => {
+            this.volumeEmitTimer = undefined;
+            this.lastVolumeEmit = Date.now();
+            this.emitTelemetry();
+        }, delay);
     }
     async setScene(sceneName) {
         if (!this.telemetry.connected) {

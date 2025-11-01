@@ -50,8 +50,7 @@ const mapRecordState = (state?: string) => {
 const dbToLevel = (db?: number) => {
   if (typeof db !== 'number') return 0;
   const clamped = Math.max(-60, Math.min(0, db));
-  const amplitude = Math.pow(10, clamped / 20);
-  return Math.round(amplitude * 100);
+  return Math.round(((clamped + 60) / 60) * 100);
 };
 
 type CommandIssue = { reason: string; timestamp: number };
