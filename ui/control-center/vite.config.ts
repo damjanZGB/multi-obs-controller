@@ -1,17 +1,25 @@
-import { defineConfig } from 'vite';
+import { defineConfig, searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-const workspaceRoot = path.resolve(__dirname, '../../');
+const uiRoot = __dirname;
+const sharedRoot = path.resolve(uiRoot, '../../scripts/shared');
 
 export default defineConfig({
+  root: uiRoot,
   plugins: [react()],
   server: {
     port: 5173,
     host: '0.0.0.0',
     fs: {
       strict: false,
-      allow: [workspaceRoot]
+      allow: [
+        searchForWorkspaceRoot(uiRoot),
+        uiRoot,
+        path.resolve(uiRoot, 'index.html'),
+        path.resolve(uiRoot, 'src'),
+        sharedRoot
+      ]
     },
     proxy: {
       '/api': {
@@ -26,7 +34,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@control-center/shared': path.resolve(__dirname, '../../scripts/shared')
+      '@control-center/shared': sharedRoot
     }
   },
   build: {
