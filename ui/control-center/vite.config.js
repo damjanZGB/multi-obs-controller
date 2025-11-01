@@ -8,6 +8,7 @@ export default defineConfig({
         host: '0.0.0.0',
         fs: {
             allow: [
+                __dirname,
                 path.resolve(__dirname, 'src'),
                 path.resolve(__dirname, '../../scripts/shared')
             ]
