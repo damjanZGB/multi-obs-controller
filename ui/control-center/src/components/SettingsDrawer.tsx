@@ -154,6 +154,7 @@ const SettingsDrawer = ({
                     </Td>
                     <Td textAlign="center">
                       <Switch
+                        colorScheme="brand"
                         isChecked={connection.enabled}
                         onChange={(event) => {
                           updateField(index, 'enabled', event.target.checked);
@@ -171,6 +172,7 @@ const SettingsDrawer = ({
                   Enable all configured instances
                 </FormLabel>
                 <Switch
+                  colorScheme="brand"
                   id="enable-all"
                   onChange={(event) => {
                     setConnectionState((prev) => {
@@ -220,7 +222,7 @@ const SettingsDrawer = ({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button colorScheme="blue" onClick={handleSubmit} isLoading={submitting}>
+            <Button colorScheme="brand" onClick={handleSubmit} isLoading={submitting}>
               Save
             </Button>
           </HStack>

@@ -12,12 +12,14 @@ const TelemetryGrid = ({ telemetry, issues = new Map() }: TelemetryGridProps) =>
     return (
       <Box
         borderWidth="1px"
-        borderColor="gray.700"
-        borderRadius="lg"
+        borderColor="card.offline.border"
+        borderRadius="surface"
         p={6}
         textAlign="center"
+        bg="card.offline.bg"
+        shadow="surface"
       >
-        <Text color="gray.400">
+        <Text color="fg.subtle">
           No telemetry available yet. Configure OBS instances to get started.
         </Text>
       </Box>
@@ -25,7 +27,7 @@ const TelemetryGrid = ({ telemetry, issues = new Map() }: TelemetryGridProps) =>
   }
 
   return (
-    <SimpleGrid spacing={4} columns={{ base: 1, md: 2, lg: 3, xl: 4 }}>
+    <SimpleGrid spacing={5} columns={{ base: 1, md: 2, lg: 3, xl: 4 }}>
       {telemetry.map((item) => (
         <TelemetryCard
           key={item.id}

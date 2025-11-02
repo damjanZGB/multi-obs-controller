@@ -1,4 +1,6 @@
+import { MoonIcon, SunIcon } from '@chakra-ui/icons';
 import {
+  Box,
   Button,
   ButtonGroup,
   Flex,
@@ -7,10 +9,8 @@ import {
   Spacer,
   Text,
   Tooltip,
-  useColorMode,
-  useColorModeValue
+  useColorMode
 } from '@chakra-ui/react';
-import { MoonIcon, SunIcon } from '@chakra-ui/icons';
 
 type ControlBarProps = {
   onMute: () => Promise<void>;
@@ -32,27 +32,43 @@ const ControlBar = ({
   onOpenSettings
 }: ControlBarProps) => {
   const { colorMode, toggleColorMode } = useColorMode();
-  const statusColor = telemetryConnected ? 'green.400' : 'red.400';
-  const bg = useColorModeValue('gray.100', 'gray.800');
+  const statusColor = telemetryConnected ? 'status.connected' : 'status.offline';
+  const indicatorShadow = telemetryConnected
+    ? '0 0 0 8px rgba(91, 141, 239, 0.18)'
+    : '0 0 0 8px rgba(158, 161, 170, 0.18)';
+  const toggleLabel = colorMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
 
   return (
     <Flex
-      align="center"
+      align={{ base: 'stretch', lg: 'center' }}
       wrap="wrap"
       gap={4}
-      p={4}
-      borderRadius="lg"
-      bg={bg}
+      p={{ base: 5, md: 6 }}
+      borderRadius="surface"
+      bg="bg.surface"
       borderWidth="1px"
-      borderColor={useColorModeValue('gray.200', 'gray.700')}
+      borderColor="border.subtle"
+      shadow="surface"
     >
-      <HStack spacing={3}>
+      <HStack spacing={4} align="center">
         <Tooltip label={telemetryConnected ? 'Telemetry live' : 'Telemetry disconnected'}>
-          <Text fontWeight="bold" color={statusColor}>
-            ●
-          </Text>
+          <HStack spacing={3}>
+            <Box
+              w={3}
+              h={3}
+              borderRadius="full"
+              bg={statusColor}
+              boxShadow={indicatorShadow}
+            />
+            <Text fontWeight="semibold" color="fg.subtle">
+              Telemetry
+            </Text>
+            <Text fontWeight="semibold">
+              {telemetryConnected ? 'Live' : 'Offline'}
+            </Text>
+          </HStack>
         </Tooltip>
-        <Text fontSize="lg" fontWeight="semibold">
+        <Text fontSize="lg" fontWeight="semibold" color="fg.default">
           Global Controls
         </Text>
       </HStack>
@@ -83,7 +99,7 @@ const ControlBar = ({
             onClick={async () => { await onSetScene(scene); }}
             isLoading={loadingCommand === scene}
             loadingText="Applying"
-            colorScheme="blue"
+            colorScheme="brand"
             isDisabled={!scene.length}
           >
             {scene}
@@ -93,13 +109,14 @@ const ControlBar = ({
 
       <Spacer />
 
-      <Button size="sm" variant="outline" onClick={onOpenSettings}>
+      <Button size="sm" variant="ghost" colorScheme="brand" onClick={onOpenSettings}>
         Settings
       </Button>
       <IconButton
-        aria-label="Toggle color mode"
+        aria-label={toggleLabel}
         size="sm"
         variant="ghost"
+        colorScheme="brand"
         icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
         onClick={toggleColorMode}
       />

@@ -6,29 +6,32 @@ import {
   Heading,
   Skeleton,
   Stack,
+  Text,
+  useColorModeValue,
   useDisclosure,
   useToast
 } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { SettingsPayload } from '@control-center/shared';
 import ControlBar from './components/ControlBar';
 import TelemetryGrid from './components/TelemetryGrid';
 import SettingsDrawer from './components/SettingsDrawer';
-import LogPanel from './components/LogPanel';
 import { useTelemetry } from './hooks/useTelemetry';
 import { useSettings } from './hooks/useSettings';
-import { useLogs } from './hooks/useLogs';
 import { muteAll, setSceneAll } from './api/client';
 
 const App = () => {
   const { telemetry, connected } = useTelemetry();
   const { connections, global, loading, error, save } = useSettings();
-  const logs = useLogs();
   const [commandIssues, setCommandIssues] = useState<Map<number, { reason: string; timestamp: number }>>(() => new Map());
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [mutingState, setMutingState] = useState<string>();
   const [savingSettings, setSavingSettings] = useState(false);
   const toast = useToast();
+  const heroGradient = useColorModeValue(
+    'linear(180deg, rgba(91, 141, 239, 0.18) 0%, rgba(231, 238, 252, 0.55) 45%, rgba(246, 245, 244, 0) 85%)',
+    'linear(180deg, rgba(91, 141, 239, 0.24) 0%, rgba(45, 52, 70, 0.55) 55%, rgba(30, 30, 36, 0) 90%)'
+  );
 
   const handleMute = async (muted: boolean) => {
     setMutingState(muted ? 'mute' : 'unmute');
@@ -130,10 +133,22 @@ const App = () => {
     }
   };
 
+  const visibleTelemetry = useMemo(() => {
+    if (!connections.length) {
+      return telemetry;
+    }
+
+    const enabledIds = new Set(
+      connections.filter((connection) => connection.enabled).map((connection) => connection.id)
+    );
+
+    return telemetry.filter((item) => enabledIds.has(item.id));
+  }, [telemetry, connections]);
+
   return (
-    <Box minH="100vh" bg="gray.900" color="gray.100" py={10}>
+    <Box minH="100vh" bg="bg.canvas" py={{ base: 10, md: 16 }} bgGradient={heroGradient}>
       <Container maxW="7xl">
-        <Stack spacing={6}>
+        <Stack spacing={8}>
           <Heading size="lg">Multi OBS Control Center</Heading>
 
           {error && (
@@ -160,14 +175,7 @@ const App = () => {
             onOpenSettings={onOpen}
           />
 
-          <TelemetryGrid telemetry={telemetry} issues={commandIssues} />
-
-          <Box>
-            <Heading size="md" mb={3}>
-              Live Activity
-            </Heading>
-            <LogPanel logs={logs} />
-          </Box>
+          <TelemetryGrid telemetry={visibleTelemetry} issues={commandIssues} />
 
           <SettingsDrawer
             isOpen={isOpen}
